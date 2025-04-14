@@ -1,0 +1,137 @@
+/* Add accent color variable */
+:root {
+    --accent: rgba(255, 255, 255, 0.9);
+}
+
+.hero-section {
+    text-align: left;
+}
+
+.hero-section h1 {
+    font-size: 6rem;
+    margin: 0;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section h1 {
+        font-size: 1.5rem;
+    }
+
+    .mobile-menu-toggle {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+}
+
+.imagination-text {
+    position: relative;
+    color: var(--text-color);
+    transition: color 1.5s ease;
+}
+
+/* Glitch effect */
+.glitch {
+    position: relative;
+    display: inline-block;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color);
+}
+
+.glitch::before {
+    left: 2px;
+    text-shadow: -2px 0 var(--accent);
+    animation: glitch-1 2s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+    left: -2px;
+    text-shadow: 2px 0 var(--accent);
+    animation: glitch-2 2s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-1 {
+    0% {
+        clip-path: inset(20% 0 81% 0);
+    }
+    20% {
+        clip-path: inset(34% 0 66% 0);
+    }
+    40% {
+        clip-path: inset(48% 0 29% 0);
+    }
+    60% {
+        clip-path: inset(84% 0 14% 0);
+    }
+    80% {
+        clip-path: inset(67% 0 37% 0);
+    }
+    100% {
+        clip-path: inset(91% 0 6% 0);
+    }
+}
+
+@keyframes glitch-2 {
+    0% {
+        clip-path: inset(39% 0 21% 0);
+    }
+    20% {
+        clip-path: inset(82% 0 12% 0);
+    }
+    40% {
+        clip-path: inset(27% 0 55% 0);
+    }
+    60% {
+        clip-path: inset(9% 0 76% 0);
+    }
+    80% {
+        clip-path: inset(42% 0 53% 0);
+    }
+    100% {
+        clip-path: inset(59% 0 43% 0);
+    }
+}
+
+.imagination-text.cloud-active {
+    color: transparent;
+    background-image: url('../assets/c.webp');
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-position: 0% 0%;
+    background-size: 250% 250%;
+    animation: cloudAnimation 6s linear forwards;
+    opacity: 0;
+    animation-delay: 0.5s;
+}
+
+@keyframes cloudAnimation {
+    0% {
+        background-position: 0% 0%;
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    100% {
+        background-position: 100% 100%;
+        opacity: 0;
+    }
+}
