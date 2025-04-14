@@ -31,7 +31,7 @@ bgmGainNode = audioContext.createGain();
 
 // Set initial volumes
 sfxGainNode.gain.value = 1.2;
-hoverSfxGainNode.gain.value = 0.2;
+hoverSfxGainNode.gain.value = 0.05;
 themeToggleSfxGainNode.gain.value = 0.5;
 bgmGainNode.gain.value = 0.3;
 
