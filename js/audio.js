@@ -93,6 +93,35 @@ fetch('assets/click2.mp3')
   })
   .catch(e => console.error('Error loading theme toggle SFX:', e));
 
+// Add BGM state tracking
+let bgmInitialized = false;
+
+function startBGM() {
+  if (!bgmBuffer || audioContext.state === 'suspended') return;
+  
+  try {
+    // Only create and start BGM if not already initialized
+    if (!bgmInitialized) {
+      bgmSource = audioContext.createBufferSource();
+      bgmSource.buffer = bgmBuffer;
+      bgmSource.loop = true;
+      bgmSource.connect(bgmGainNode);
+      bgmSource.start(0);
+      bgmInitialized = true;
+    }
+  } catch (error) {
+    console.warn('Error starting BGM:', error);
+    bgmInitialized = false;
+  }
+}
+
+// Add function to handle BGM state
+function handleBGMState() {
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+}
+
 // Function to play sound with anti-clipping
 export function playClickSound() {
   if (!sfxBuffer || audioContext.state === 'suspended') return;
@@ -123,29 +152,6 @@ export function playClickSound() {
   
   // Start playback
   source.start(0);
-}
-
-function startBGM() {
-  if (!bgmBuffer || audioContext.state === 'suspended') return;
-  
-  try {
-    // Stop existing BGM if any
-    if (bgmSource) {
-      bgmSource.stop();
-      bgmSource.disconnect();
-    }
-    
-    // Create and setup new BGM source
-    bgmSource = audioContext.createBufferSource();
-    bgmSource.buffer = bgmBuffer;
-    bgmSource.loop = true;
-    bgmSource.connect(bgmGainNode);
-    
-    // Start playback
-    bgmSource.start(0);
-  } catch (error) {
-    console.warn('Error starting BGM:', error);
-  }
 }
 
 // Function to play hover sound
@@ -190,9 +196,9 @@ export function playThemeToggleSound() {
   source.start(0);
 }
 
+// Update toggleMute to handle BGM properly
 export function toggleMute() {
   if (themeToggleSfxBuffer && audioContext.state !== 'suspended') {
-    // Create new buffer source and gain node for the mute toggle sound
     const source = audioContext.createBufferSource();
     source.buffer = themeToggleSfxBuffer;
     source.connect(themeToggleSfxGainNode);
@@ -201,10 +207,16 @@ export function toggleMute() {
   
   isMuted = !isMuted;
   masterGainNode.gain.setValueAtTime(isMuted ? 0 : 1, audioContext.currentTime);
+  
+  // Handle BGM state when unmuting
+  if (!isMuted) {
+    handleBGMState();
+  }
+  
   return isMuted;
 }
 
-// Initialize audio system
+// Update initAudio to use new BGM handling
 export function initAudio() {
   const muteButton = document.getElementById('muteButton');
   const footerMuteButton = document.getElementById('footerMuteButton');
@@ -214,7 +226,6 @@ export function initAudio() {
     if (footerMuteButton) footerMuteButton.classList.toggle('muted', muted);
   }
 
-  // Function to ensure audio context is running
   async function ensureAudioContext() {
     if (audioContext.state === 'suspended') {
       try {
@@ -228,10 +239,9 @@ export function initAudio() {
     return true;
   }
 
-  // Handle user interaction to start audio
   async function handleInteraction() {
     const success = await ensureAudioContext();
-    if (success && !bgmSource && bgmBuffer) {
+    if (success && !bgmInitialized && bgmBuffer) {
       startBGM();
     }
   }
