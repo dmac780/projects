@@ -8,96 +8,84 @@
  * @since 2025-04-11
  */
 
-// Audio setup
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+// Audio context and nodes
+let audioContext = null;
 let sfxBuffer = null;
-let hoverSfxBuffer = null;  // New buffer for hover sound
-let themeToggleSfxBuffer = null;  // New buffer for theme toggle sound
+let hoverSfxBuffer = null;
+let themeToggleSfxBuffer = null;
 let bgmBuffer = null;
 let bgmSource = null;
 let masterGainNode = null;
 let sfxGainNode = null;
 let hoverSfxGainNode = null;
-let themeToggleSfxGainNode = null;  // New gain node for theme toggle sound
+let themeToggleSfxGainNode = null;
 let bgmGainNode = null;
 let isMuted = false;
-
-// Create gain nodes
-masterGainNode = audioContext.createGain();
-sfxGainNode = audioContext.createGain();
-hoverSfxGainNode = audioContext.createGain();
-themeToggleSfxGainNode = audioContext.createGain();  // Create theme toggle gain node
-bgmGainNode = audioContext.createGain();
-
-// Set initial volumes
-sfxGainNode.gain.value = 1.2;
-hoverSfxGainNode.gain.value = 0.05;
-themeToggleSfxGainNode.gain.value = 0.5;
-bgmGainNode.gain.value = 0.3;
-
-// Connect nodes to master
-sfxGainNode.connect(masterGainNode);
-hoverSfxGainNode.connect(masterGainNode);
-themeToggleSfxGainNode.connect(masterGainNode);
-bgmGainNode.connect(masterGainNode);
-masterGainNode.connect(audioContext.destination);
-
-// Load and decode sound effect
-fetch('assets/boom2.mp3')
-  .then(response => response.arrayBuffer())
-  .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-  .then(buffer => {
-    sfxBuffer = buffer;
-  })
-  .catch(e => console.error('Error loading SFX:', e));
-
-// Load and decode hover sound effect
-fetch('assets/click.mp3')
-  .then(response => response.arrayBuffer())
-  .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-  .then(buffer => {
-    hoverSfxBuffer = buffer;
-  })
-  .catch(e => console.error('Error loading hover SFX:', e));
-
-// Load and decode background music
-fetch('assets/ambient.mp3')
-  .then(response => response.arrayBuffer())
-  .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-  .then(buffer => {
-    bgmBuffer = buffer;
-    // Start BGM on any interaction
-    const startAudioOnInteraction = () => {
-      startBGM();
-      // Remove all event listeners once BGM starts
-      document.removeEventListener('click', startAudioOnInteraction);
-      document.removeEventListener('mousemove', startAudioOnInteraction);
-      document.removeEventListener('scroll', startAudioOnInteraction);
-      document.removeEventListener('touchstart', startAudioOnInteraction);
-    };
-
-    // Add listeners for various interactions
-    document.addEventListener('click', startAudioOnInteraction, { once: true });
-    document.addEventListener('mousemove', startAudioOnInteraction, { once: true });
-    document.addEventListener('scroll', startAudioOnInteraction, { once: true });
-    document.addEventListener('touchstart', startAudioOnInteraction, { once: true });
-  })
-  .catch(e => console.error('Error loading BGM:', e));
-
-// Load and decode theme toggle sound effect
-fetch('assets/click2.mp3')
-  .then(response => response.arrayBuffer())
-  .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-  .then(buffer => {
-    themeToggleSfxBuffer = buffer;
-  })
-  .catch(e => console.error('Error loading theme toggle SFX:', e));
-
-// Add BGM state tracking
 let bgmInitialized = false;
 
+// Initialize audio system only after user interaction
+async function initializeAudioContext() {
+  if (audioContext) return; // Already initialized
+
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  
+  // Create gain nodes
+  masterGainNode = audioContext.createGain();
+  sfxGainNode = audioContext.createGain();
+  hoverSfxGainNode = audioContext.createGain();
+  themeToggleSfxGainNode = audioContext.createGain();
+  bgmGainNode = audioContext.createGain();
+
+  // Set initial volumes
+  sfxGainNode.gain.value = 1.2;
+  hoverSfxGainNode.gain.value = 0.05;
+  themeToggleSfxGainNode.gain.value = 0.5;
+  bgmGainNode.gain.value = 0.3;
+
+  // Connect nodes to master
+  sfxGainNode.connect(masterGainNode);
+  hoverSfxGainNode.connect(masterGainNode);
+  themeToggleSfxGainNode.connect(masterGainNode);
+  bgmGainNode.connect(masterGainNode);
+  masterGainNode.connect(audioContext.destination);
+
+  // Load all audio files
+  await Promise.all([
+    // Load click sound
+    fetch('assets/boom2.mp3')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(buffer => { sfxBuffer = buffer; })
+      .catch(e => console.error('Error loading SFX:', e)),
+
+    // Load hover sound
+    fetch('assets/click.mp3')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(buffer => { hoverSfxBuffer = buffer; })
+      .catch(e => console.error('Error loading hover SFX:', e)),
+
+    // Load background music
+    fetch('assets/ambient.mp3')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(buffer => { bgmBuffer = buffer; })
+      .catch(e => console.error('Error loading BGM:', e)),
+
+    // Load theme toggle sound
+    fetch('assets/click2.mp3')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+      .then(buffer => { themeToggleSfxBuffer = buffer; })
+      .catch(e => console.error('Error loading theme toggle SFX:', e))
+  ]);
+
+  // Start BGM after everything is loaded
+  startBGM();
+}
+
 function startBGM() {
-  if (!bgmBuffer || audioContext.state === 'suspended') return;
+  if (!bgmBuffer || !audioContext || audioContext.state === 'suspended') return;
   
   try {
     // Only create and start BGM if not already initialized
@@ -115,108 +103,66 @@ function startBGM() {
   }
 }
 
-// Add function to handle BGM state
-function handleBGMState() {
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-}
-
 // Function to play sound with anti-clipping
 export function playClickSound() {
-  if (!sfxBuffer || audioContext.state === 'suspended') return;
+  if (!audioContext || !sfxBuffer || audioContext.state === 'suspended') return;
   
-  // Create new buffer source and gain node
   const source = audioContext.createBufferSource();
   const gainNode = audioContext.createGain();
   
-  // Connect nodes
   source.buffer = sfxBuffer;
   source.connect(gainNode);
   gainNode.connect(sfxGainNode);
 
-  // Set volume with improved attack curve
   const now = audioContext.currentTime;
-  const attackTime = 0.015; // 15ms attack time
-  const holdTime = 0.02;    // 20ms hold time
+  const attackTime = 0.015;
+  const holdTime = 0.02;
   const releaseTime = sfxBuffer.duration - (attackTime + holdTime);
   
-  // Start at near-zero to prevent click
   gainNode.gain.setValueAtTime(0.001, now);
-  // Exponential ramp for smoother attack on low frequencies
   gainNode.gain.exponentialRampToValueAtTime(0.5, now + attackTime);
-  // Hold at peak
   gainNode.gain.setValueAtTime(0.5, now + attackTime + holdTime);
-  // Linear release
   gainNode.gain.linearRampToValueAtTime(0, now + sfxBuffer.duration);
   
-  // Start playback
   source.start(0);
 }
 
 // Function to play hover sound
 export function playHoverSound() {
-  if (!hoverSfxBuffer || audioContext.state === 'suspended') return;
+  if (!audioContext || !hoverSfxBuffer || audioContext.state === 'suspended') return;
   
-  // Create new buffer source and gain node
   const source = audioContext.createBufferSource();
-  const gainNode = audioContext.createGain();
-  
-  // Connect nodes
   source.buffer = hoverSfxBuffer;
   source.connect(hoverSfxGainNode);
-
-  // Set volume and prevent clipping
-  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-  gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + hoverSfxBuffer.duration);
-  
-  // Start playback
   source.start(0);
 }
 
 // Function to play theme toggle sound
 export function playThemeToggleSound() {
-  if (!themeToggleSfxBuffer || audioContext.state === 'suspended') return;
+  if (!audioContext || !themeToggleSfxBuffer || audioContext.state === 'suspended') return;
   
-  // Create new buffer source and gain node
   const source = audioContext.createBufferSource();
-  const gainNode = audioContext.createGain();
-  
-  // Connect nodes
   source.buffer = themeToggleSfxBuffer;
   source.connect(themeToggleSfxGainNode);
-
-  // Set volume and prevent clipping
-  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
-  gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + themeToggleSfxBuffer.duration);
-  
-  // Start playback
   source.start(0);
 }
 
-// Update toggleMute to handle BGM properly
 export function toggleMute() {
-  if (themeToggleSfxBuffer && audioContext.state !== 'suspended') {
-    const source = audioContext.createBufferSource();
-    source.buffer = themeToggleSfxBuffer;
-    source.connect(themeToggleSfxGainNode);
-    source.start(0);
-  }
+  if (!audioContext) return false;
+  
+  playThemeToggleSound();
   
   isMuted = !isMuted;
   masterGainNode.gain.setValueAtTime(isMuted ? 0 : 1, audioContext.currentTime);
   
-  // Handle BGM state when unmuting
-  if (!isMuted) {
-    handleBGMState();
+  if (!isMuted && audioContext.state === 'suspended') {
+    audioContext.resume();
   }
   
   return isMuted;
 }
 
-// Update initAudio to use new BGM handling
+// Initialize audio system
 export function initAudio() {
   const muteButton = document.getElementById('muteButton');
   const footerMuteButton = document.getElementById('footerMuteButton');
@@ -226,30 +172,16 @@ export function initAudio() {
     if (footerMuteButton) footerMuteButton.classList.toggle('muted', muted);
   }
 
-  async function ensureAudioContext() {
-    if (audioContext.state === 'suspended') {
-      try {
-        await audioContext.resume();
-        return true;
-      } catch (error) {
-        console.warn('Could not resume audio context:', error);
-        return false;
-      }
-    }
-    return true;
-  }
-
-  async function handleInteraction() {
-    const success = await ensureAudioContext();
-    if (success && !bgmInitialized && bgmBuffer) {
-      startBGM();
-    }
+  // Handle user interaction to initialize audio
+  async function handleFirstInteraction() {
+    await initializeAudioContext();
+    updateMuteButtons(isMuted);
   }
 
   // Add click handlers for mute buttons
   if (muteButton) {
     muteButton.addEventListener('click', async () => {
-      await handleInteraction();
+      await handleFirstInteraction();
       const isMuted = toggleMute();
       updateMuteButtons(isMuted);
     });
@@ -257,24 +189,24 @@ export function initAudio() {
 
   if (footerMuteButton) {
     footerMuteButton.addEventListener('click', async () => {
-      await handleInteraction();
+      await handleFirstInteraction();
       const isMuted = toggleMute();
       updateMuteButtons(isMuted);
     });
   }
 
-  // Add interaction listeners for audio context resume
+  // Add interaction listeners for audio initialization
   const interactionEvents = ['click', 'touchstart', 'keydown', 'mousedown'];
-  const handleFirstInteraction = async () => {
-    await handleInteraction();
+  const handleInteraction = async () => {
+    await handleFirstInteraction();
     // Remove listeners after first successful interaction
     interactionEvents.forEach(event => {
-      document.removeEventListener(event, handleFirstInteraction);
+      document.removeEventListener(event, handleInteraction);
     });
   };
 
   interactionEvents.forEach(event => {
-    document.addEventListener(event, handleFirstInteraction);
+    document.addEventListener(event, handleInteraction, { once: true });
   });
 
   // Initialize mute state
